@@ -1,0 +1,24 @@
+{
+  "clusters": [
+    {
+      "nodes": [
+        {
+          "node": {
+            "hostnames": {
+              "manage": [
+                "{{ private_dns_name }}"
+              ],
+              "storage": [
+                "{{ private_ip_address }}"
+              ]
+            },
+            "zone": 1
+          },
+          "devices": [
+            "/dev/xvdc"
+          ]
+        }
+      ]
+    }
+  ]
+}

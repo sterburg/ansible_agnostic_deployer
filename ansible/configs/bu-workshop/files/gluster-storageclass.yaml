@@ -1,0 +1,10 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: gluster
+provisioner: kubernetes.io/glusterfs
+parameters:
+  resturl: "http://deploy-heketi.storage.svc.cluster.local:8080" 
+  restuser: "admin" 
+  secretName: "heketi-secret" 
+  secretNamespace: "default"
