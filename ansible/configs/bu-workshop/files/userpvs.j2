@@ -8,7 +8,7 @@ spec:
   capacity:
     storage: {{ pv_size }}
   accessModes:
-  - ReadWriteOnce
+  - ReadWriteMany
 {% if  pv % 2 == 0 %}
   - ReadWriteMany
 {% endif %}

@@ -1,18 +1,18 @@
 ### Common Vars
-ansible_ssh_user: "ec2-user"
-remote_user: "ec2-user"
+ansible_ssh_user: "sterburg"
+remote_user: "sterburg"
 use_internal_dns_zone: false
-deploy_openshift: true
-install_nfs: true
+deploy_openshift: false
+install_nfs: false
 update_packages: false
-install_bastion: true
+install_bastion: false
 software_to_deploy: "openshift"
 install_idm: false
 use_subscriptions: false
 use_own_repos: true
-cloud_provider: "ec2"
+cloud_provider: "azure"
 install_common: true
-hosted_zone_id: "Z226QCZPDICGRI"
+hosted_zone_id: "bla"
 
 # TODO: This should probably be in groupvars for all and then overridden here
 common_packages:
@@ -27,29 +27,31 @@ common_packages:
   - vim-enhanced
 
 ### Provisioner Specific
+env_type: "bu-workshop"
+guid: ""
 lab_tag: "master"
 lab_url: "https://github.com/osevg/workshopper"
-lab_content: "https://raw.githubusercontent.com/osevg/workshopper-content/master/_workshops/roadshow.yml"
+lab_content: "https://raw.githubusercontent.com/sterburg/workshopper-content/master/_workshops/paris.yml"
 subdomain_base_short: "{{ guid }}"
-subdomain_base_suffix: "openshift3roadshow.com"
-subdomain_base: "{{ subdomain_base_short }}.{{ subdomain_base_suffix }}"
-oc_path: "/usr/local/bin/oc"
+subdomain_base_suffix: "openshift.eu"
+subdomain_base: ""
+oc_path: "oc"
 
 ### OpenShift Vars
-repo_version: "3.4"
-docker_version: "1.12.5"
-docker_device: /dev/xvdb
+repo_version: "3.5"
+docker_version: "1.12.6"
+docker_device: /dev/sdc
 idm: false
 install_metrics: true
 install_logging: true
 #### Vars for the Ansible hosts file
 master_api_port: 443
 multi_tenant_setting: "os_sdn_network_plugin_name='redhat/openshift-ovs-multitenant'"
-master_lb_dns: "master.{{ subdomain_base }}"
+master_lb_dns: "{{ subdomain_base }}"
 
-cloudapps_suffix: 'cloudapps.{{ subdomain_base }}'
+cloudapps_suffix: '{{ subdomain_base }}'
 openshift_master_ldap_ca_file: 'openshift_master_ldap_ca_file=/root/ca.crt'
-osrelease: "3.4.0.40"
+osrelease: "3.5.5.8"
 openshift_master_overwrite_named_certificates: true
 
 timeout: 60
@@ -60,7 +62,7 @@ rhel_repos:
 
 ## NFS Server settings
 nfs_vg: nfsvg
-nfs_pvs: /dev/xvdb
+nfs_pvs: /dev/sdc
 nfs_export_path: /srv/nfs
 
 nfs_shares:
@@ -73,7 +75,7 @@ workshop_shares:
   - gitlab-etc
   - redis
 
-user_vols: 100
+user_vols: 200
 user_vols_size: 5Gi
 
 cache_images:
@@ -139,7 +141,7 @@ bastion_instance_type: "t2.medium"
 master_instance_type: "m4.xlarge"
 infranode_instance_type: "m4.4xlarge"
 node_instance_type: "m4.xlarge"
-num_nodes: 24
+num_nodes: 16
 key_name: "roadshow"
 
 cf_template_description: "{{ env_type }}-{{ guid }} template"

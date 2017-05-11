@@ -75,7 +75,7 @@ openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 
 # Enable cluster metrics
 openshift_hosted_metrics_deploy={{ install_metrics }}
 openshift_hosted_metrics_storage_kind=nfs
-openshift_hosted_metrics_storage_access_modes=['ReadWriteOnce']
+openshift_hosted_metrics_storage_access_modes=['ReadWriteMany']
 openshift_hosted_metrics_storage_host={{ hostvars[ groups[ ('tag_' + env_type + '-' + guid + '_nfs') | replace('-', '_') ].0 ]["ec2_private_dns_name"] }}
 openshift_hosted_metrics_storage_nfs_directory=/srv/nfs
 openshift_hosted_metrics_storage_nfs_options='*(rw,root_squash)'
@@ -86,7 +86,7 @@ openshift_hosted_metrics_public_url=https://metrics.{{ cloudapps_suffix }}/hawku
 # Enable cluster logging
 openshift_hosted_logging_deploy={{ install_logging }}
 openshift_hosted_logging_storage_kind=nfs
-openshift_hosted_logging_storage_access_modes=['ReadWriteOnce']
+openshift_hosted_logging_storage_access_modes=['ReadWriteMany']
 openshift_hosted_logging_storage_nfs_directory=/srv/nfs
 openshift_hosted_logging_storage_nfs_options='*(rw,root_squash)'
 openshift_hosted_logging_storage_volume_name=logging

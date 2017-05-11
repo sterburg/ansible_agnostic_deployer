@@ -1,169 +1,9 @@
 # vim: set ft=ansible:
 ---
-- name: Bastion hostname config
-  hosts: localhost
-  connection: local
-  become: false
-  tags:
-    - workshop
-    - workshop_bastion_hostname
-  tasks:
-    - name: Store bastion hostname as a fact
-      set_fact:
-        bastion_hostname: "{{ hostvars[ groups[ ('tag_' ~ env_type ~ '_' ~ guid ~ '_bastion') | replace('-', '_') ].0 ]['ec2_public_dns_name'] }}"
-
-# TODO: metrics nodeselector
-
-
-- name: User volumes on NFS server
-  hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_nfs') | replace('-', '_') }}"
-  gather_facts: False
-  vars_files:
-    - "env_vars.yml"
-    - "env_secret_vars.yml"
-    - "ssh_vars.yml"
-  tags:
-    - workshop
-    - workshop_user_nfs_volume_dirs
-  tasks:
-    - name: Create user vols
-      shell: "mkdir -p /srv/nfs/user-vols/vol{1..{{ user_vols }}}"
-    - name: chmod the user vols
-      shell: "chmod -R 777 /srv/nfs/user-vols"
-
-- name: NFS volume configuration
-  hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_master') | replace('-', '_') }}"
-  vars_files:
-    - "env_vars.yml"
-    - "env_secret_vars.yml"
-    - "ssh_vars.yml"
-  tags:
-    - workshop
-    - workshop_nfs_user_base_pv
-  tasks:
-    - name: Set NFS related facts
-      set_fact:
-        nfs_host: "{{ hostvars[ groups[ ('tag_' ~ env_type ~ '_' ~ guid ~ '_nfs') | replace('-', '_') ].0 ]['ec2_public_dns_name'] }}"
-        pv_size: '10Gi'
-        pv_list: "{{ nfs_shares }}"
-        persistentVolumeReclaimPolicy: Retain
-
-    # TODO: I think I can get rid of this pvs because I do it later
-    - name: Generate PV file
-      template:
-        src: "{{ playbook_dir }}/files/pvs.j2"
-        dest: "/root/pvs-{{ env_type }}-{{ guid }}.yml"
-      tags: 
-        - gen_pv_file
-
-    - set_fact:
-        pv_size: "{{ user_vols_size }}"
-        persistentVolumeReclaimPolicy: Recycle
-
-    - name: Generate user vol PV file
-      template:
-        src: "{{ playbook_dir }}/files/userpvs.j2"
-        dest: "/root/userpvs-{{ env_type }}-{{ guid }}.yml"
-      tags:
-        - gen_user_vol_pv
-
-    - name: Create base PVs from file
-      shell: '{{ oc_path }} create -f /root/pvs-{{ env_type }}-{{ guid }}.yml || {{ oc_path }} update -f /root/pvs-{{ env_type }}-{{ guid }}.yml'
-
-    - name: Create user PVs from file
-      shell: '{{ oc_path }} create -f /root/userpvs-{{ env_type }}-{{ guid }}.yml || {{ oc_path }} update -f /root/userpvs-{{ env_type }}-{{ guid }}.yml'
-
-- name: Workshop admins
-  hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_master') | replace('-', '_') }}"
-  vars_files:
-    - "env_vars.yml"
-    - "env_secret_vars.yml"
-    - "ssh_vars.yml"
-  tags:
-    - workshop
-    - workshop_admins
-  tasks:
-    - name: Add administrative user to htpasswd file
-      htpasswd:
-        dest: "/etc/origin/master/htpasswd"
-        name: "admin"
-        password: "openshift3"
-        state: present
-
-    - name: Give administrative user cluster-admin privileges
-      command: "{{ oc_path }} adm policy add-cluster-role-to-user cluster-admin admin"
-
-- name: Create Workshop NFS shares
-  hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_nfs') | replace('-', '_') }}"
-  vars_files:
-    - "env_vars.yml"
-    - "env_secret_vars.yml"
-    - "ssh_vars.yml"
-  tags:
-    - workshop
-    - workshop_nfs
-  tasks:
-    - name: Create workshop nfs directory
-      file:
-        name: '/srv/nfs/{{ item }}'
-        state: directory
-        mode: 0777
-        owner: nfsnobody
-        group: nfsnobody
-        recurse: True
-      with_items:
-        - '{{ workshop_shares }}'
-
-    - name: Create workshop exports file
-      file:
-        path: "/etc/exports.d/{{ env_type }}-{{ guid }}-workshop.exports"
-        state: touch
-        mode: 755
-
-    - name: Update workshop exports file
-      lineinfile:
-        dest: "/etc/exports.d/{{ env_type }}-{{ guid }}-workshop.exports"
-        line: "/srv/nfs/{{ item }} *(rw,root_squash,no_wdelay,sync)"
-        state: present
-      with_items:
-        - '{{ workshop_shares }}'
-      run_once: True
-
-    - name: Reload NFS exports
-      shell: "exportfs -r"
-
-- name: Workshop PVs
-  hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_master') | replace('-', '_') }}"
-  vars_files:
-    - "env_vars.yml"
-    - "env_secret_vars.yml"
-    - "ssh_vars.yml"
-  tags:
-    - workshop
-    - create_workshop_vol_pvs
-  tasks:
-    - set_fact:
-        pv_size: '10Gi'
-        pv_list: "{{ workshop_shares }}"
-        persistentVolumeReclaimPolicy: Retain
-        nfs_hostname: "{{ hostvars[ groups[ ('tag_' ~ env_type ~ '_' ~ guid ~ '_nfs') | replace('-', '_') ].0 ]['ansible_fqdn'] }}"
-
-    - name: Generate workshop PV file
-      template:
-        src: "files/{{ env_type }}_pvs.j2"
-        dest: "/root/pvs-{{ env_type }}-{{ guid }}.yml"
-
-    - name: Create workshop PVs
-      shell: 'oc create -f /root/pvs-{{ env_type }}-{{ guid }}.yml || oc update -f /root/pvs-{{ env_type }}-{{ guid }}.yml'
 
 - name: Workshop prerequisites
   hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_master') | replace('-', '_') }}"
+    - tag_bu_workshop_openshift_master
   vars_files:
     - "env_vars.yml"
     - "env_secret_vars.yml"
@@ -220,7 +60,7 @@
 
 - name: Nexus server
   hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_master') | replace('-', '_') }}"
+    - tag_bu_workshop_openshift_master
   vars_files:
     - "env_vars.yml"
     - "env_secret_vars.yml"
@@ -266,20 +106,6 @@
       retries: 5
       delay: 60
 
-    - name: Install EPEL (for jq)
-      package:
-        name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
-        state: installed
-
-    - name: Disable EPEL
-      command: "yum-config-manager --disablerepo=epel"
-
-    - name: Install jq
-      package:
-        name: jq
-        state: present
-        enablerepo: epel
-
     - name: Copy Nexus addrepo script
       copy:
         src: "files/addrepo.sh"
@@ -309,7 +135,7 @@
 
 - name: Gitlab
   hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_master') | replace('-', '_') }}"
+    - tag_bu_workshop_openshift_master
   vars_files:
     - "env_vars.yml"
     - "env_secret_vars.yml"
@@ -384,7 +210,7 @@
 
 - name: Lab guide
   hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_master') | replace('-', '_') }}"
+    - tag_bu_workshop_openshift_master
   vars_files:
     - "env_vars.yml"
     - "env_secret_vars.yml"
@@ -403,7 +229,6 @@
       shell: >
         {{ oc_path }} new-app
         --name=labs jboss-eap70-openshift~{{ lab_url }}#{{ lab_tag }}
-
         -e ROUTER_ADDRESS={{cloudapps_suffix}}
         -e CONSOLE_ADDRESS=master.{{subdomain_base}}
         -e DEFAULT_LAB=roadshow
@@ -417,34 +242,10 @@
       tags:
         - build-workshop-labs
 
-- name: GitLab nfs permissions hack
-  hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_nfs') | replace('-', '_') }}"
-  vars_files:
-    - "env_vars.yml"
-    - "env_secret_vars.yml"
-    - "ssh_vars.yml"
-  tags:
-    - workshop
-    - workshop_nfs_hack
-  tasks:
-    - name: Fix ownership and permission of git-data
-      file:
-        dest: "/srv/nfs/gitlab-data"
-        mode: "0700"
-        owner: "998"
-        group: root
-        recurse: yes
-
-    - name: Fix permission on git-data/repositories
-      file:
-        dest: "/srv/nfs/gitlab-data/git-data/repositories"
-        mode: "2770"
-        recurse: yes
 
 - name: Project Request Template
   hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_master') | replace('-', '_') }}"
+    - tag_bu_workshop_openshift_master
   vars_files:
     - "env_vars.yml"
     - "env_secret_vars.yml"
@@ -465,7 +266,7 @@
 
 - name: Workshop Users
   hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_master') | replace('-', '_') }}"
+    - localhost
   vars_files:
     - "env_vars.yml"
     - "env_secret_vars.yml"
@@ -475,30 +276,23 @@
     - workshop_users
   tasks:
 
-    - name: Add log path to Ansible configuration
-      lineinfile:
-        regexp: "^#log_path"
-        dest: "/etc/ansible/ansible.cfg"
-        line: "log_path = /root/ansible.log"
-        state: present
-
     - name: Copy vars file to master
       copy:
         src: "env_vars.yml"
-        dest: "/root/{{ env_type }}_vars.yml"
+        dest: "/tmp/{{ env_type }}_vars.yml"
 
     - name: Copy user provision Ansible script remotely
       copy:
         src: "files/userprovision.yaml"
-        dest: "/root/userprovision.yaml"
+        dest: "/tmp/userprovision.yaml"
 
     - name: Set Gitlab internal hostname
       set_fact:
-        gitlab_hostname: 'gitlab-ce.workshop-infra.svc.cluster.local'
+        gitlab_hostname: 'gitlab-ce-workshop-infra.publicpaas.openshift.openline.nl'
 
     - name: Get root user token
       uri:
-        url: 'http://gitlab-ce.workshop-infra.svc.cluster.local/api/v3/session'
+        url: 'http://gitlab-ce-workshop-infra.publicpaas.openshift.openline.nl/api/v3/session'
         body: 'login=root&password=password'
         method: POST
         status_code: 201
@@ -514,7 +308,7 @@
     - name: Execute user provision Ansible script remotely
       shell: >
         ansible-playbook
-        -i localhost /root/userprovision.yaml
+        -i localhost /tmp/userprovision.yaml
         -e config={{ env_type }}
         -e user={{ item }}
         -e root_token={{ root_token }}
@@ -523,7 +317,7 @@
 
 - name: Deploy etherpad
   hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_master') | replace('-', '_') }}"
+    - tag_bu_workshop_openshift_master
   vars_files:
     - "env_vars.yml"
     - "env_secret_vars.yml"
@@ -597,7 +391,7 @@
 
 - name: Cache Java dependencies
   hosts: 
-    - "{{ ('tag_' ~ env_type ~ '_' ~ guid ~ '_master') | replace('-', '_') }}"
+    - tag_bu_workshop_openshift_master
   vars_files:
     - "env_vars.yml"
     - "env_secret_vars.yml"

@@ -6,10 +6,10 @@
   vars_files:
     - "bu-workshop_vars.yml"
   vars:
-    - oc_path: "/usr/local/bin/oc"
+    - oc_path: "oc"
   tasks:
 
-  - name: 'Add user{{ user }} to htpasswd file' 
+  - name: 'Add user{{ user }} to htpasswd file'
     htpasswd:
       dest: "/etc/origin/master/htpasswd"
       name: "user{{ user }}"
@@ -36,7 +36,7 @@
 
   - name: 'Check for user{{user}} in GitLab'
     uri:
-      url: 'http://gitlab-ce.workshop-infra.svc.cluster.local/api/v3/users?username=user{{user}}'
+      url: 'http://{{ gitlab_hostname }}/api/v3/users?username=user{{user}}'
       HEADER_PRIVATE-TOKEN: "{{ root_token }}"
       method: GET
       status_code: 200

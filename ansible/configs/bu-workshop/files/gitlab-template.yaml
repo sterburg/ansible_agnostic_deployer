@@ -416,52 +416,40 @@ objects:
     name: "${APPLICATION_NAME}-redis-data"
   spec:
     accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
     resources:
       requests:
         storage: "${REDIS_VOL_SIZE}"
-    selector:
-      matchLabels:
-        owner: "redis"
 - kind: PersistentVolumeClaim
   apiVersion: v1
   metadata:
     name: "${APPLICATION_NAME}-etc"
   spec:
     accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
     resources:
       requests:
         storage: "${ETC_VOL_SIZE}"
-    selector:
-      matchLabels:
-        owner: "gitlab-etc"
 - kind: PersistentVolumeClaim
   apiVersion: v1
   metadata:
     name: "${APPLICATION_NAME}-data"
   spec:
     accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
     resources:
       requests:
         storage: "${GITLAB_DATA_VOL_SIZE}"
-    selector:
-      matchLabels:
-        owner: "gitlab-data"
 - kind: PersistentVolumeClaim
   apiVersion: v1
   metadata:
     name: "${APPLICATION_NAME}-postgresql"
   spec:
     accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
     resources:
       requests:
         storage: "${POSTGRESQL_VOL_SIZE}"
-    selector:
-      matchLabels:
-        owner: "postgres"
 - kind: Route
   apiVersion: v1
   metadata:

@@ -10,7 +10,7 @@ spec:
   capacity:
     storage: {{ pv_size }}
   accessModes:
-  - ReadWriteOnce
+  - ReadWriteMany
   nfs:
     path: {{ nfs_export_path }}/{{pv}}
     server: {{ nfs_hostname }}
