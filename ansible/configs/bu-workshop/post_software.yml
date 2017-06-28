@@ -25,6 +25,7 @@
 
     - name: Make workshop-infra project network global
       command: "{{ oc_path }} adm pod-network make-projects-global workshop-infra"
+      ignore_errors: true
 
     - name: Set workshop-infra SCC for anyuid
       command: "{{ oc_path }} adm policy add-scc-to-group anyuid system:serviceaccounts:workshop-infra"
@@ -158,7 +159,7 @@
     - name: Instantiate Gitlab from template
       shell: >
         {{ oc_path }} process -f /root/gitlab-template.yaml
-        -v APPLICATION_HOSTNAME=gitlab-ce-workshop-infra.{{ cloudapps_suffix }}
+        -v APPLICATION_HOSTNAME=gitlab.{{ cloudapps_suffix }}
         -v GITLAB_ROOT_PASSWORD=password | {{ oc_path }} create -f - -n workshop-infra
 
       when: install_gitlab | failed
@@ -288,11 +289,11 @@
 
     - name: Set Gitlab internal hostname
       set_fact:
-        gitlab_hostname: 'gitlab-ce-workshop-infra.publicpaas.openshift.openline.nl'
+        gitlab_hostname: 'gitlab.openshift.eu'
 
     - name: Get root user token
       uri:
-        url: 'http://gitlab-ce-workshop-infra.publicpaas.openshift.openline.nl/api/v3/session'
+        url: 'http://gitlab.openshift.eu/api/v3/session'
         body: 'login=root&password=password'
         method: POST
         status_code: 201
@@ -335,7 +336,7 @@
       shell: >
         {{ oc_path }} new-app 
         --name=mysql-pad
-        --template=mysql-ephemeral
+        --template=mysql-persistent
         -p MYSQL_USER=etherpad
         -p MYSQL_PASSWORD=etherpad
         -p MYSQL_DATABASE=etherpad
